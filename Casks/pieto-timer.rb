@@ -1,6 +1,6 @@
 cask "pieto-timer" do
   version "1.0"
-  sha256 "d41849e514a9e7753a679785e552b60f202ed0c62bc5a431d8345ac49d84df19"
+  sha256 "ec748c90ce2d31b56a03d230dc5c9fb82b636e8cf0620cde7e549b3f08c22910"
 
   url "https://pieto.watrix.co.jp/PietoTimer-v#{version}-macOS.zip"
   name "Pieto Timer"
