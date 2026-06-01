@@ -1,6 +1,6 @@
 cask "hibari" do
-  version "1.2.2"
-  sha256 "e38400150d75b95302af599b29d1f2de5089efbe0d440091acb82463dc46b377"
+  version "1.2.3"
+  sha256 "67fddde183ce4a1e652bb58bf36cee5a9b94b10c77c7379c627c21dcc4c58078"
 
   url "https://github.com/watrix811/homebrew-tap/releases/download/hibari-v#{version}/Hibari-v#{version}-macOS.zip"
   name "Hibari"
