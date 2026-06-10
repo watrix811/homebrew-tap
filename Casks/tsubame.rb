@@ -8,7 +8,7 @@ cask "tsubame" do
   desc "Terminal-style desktop app with an animated office of working characters"
   homepage "https://tsubame.watrix.co.jp"
 
-  depends_on macos: ">= :big_sur"
+  depends_on macos: :big_sur
 
   app "Tsubame.app"
 
