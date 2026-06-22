@@ -30,11 +30,11 @@ class SessionMonitor extends EventEmitter {
   // attach to even before any phone connects.
   ensureSession() {
     try {
-      execFileSync('tmux', ['has-session', '-t', config.sessionName], {
+      execFileSync(config.tmuxBin, ['has-session', '-t', config.sessionName], {
         stdio: 'ignore',
       });
     } catch (_) {
-      execFileSync('tmux', [
+      execFileSync(config.tmuxBin, [
         'new-session',
         '-d',
         '-s',
@@ -45,7 +45,7 @@ class SessionMonitor extends EventEmitter {
     // Size the session after whichever client is most recently active (the
     // phone), so this read-only monitor doesn't shrink the usable area.
     try {
-      execFileSync('tmux', [
+      execFileSync(config.tmuxBin, [
         'set-option',
         '-t',
         config.sessionName,
@@ -64,7 +64,7 @@ class SessionMonitor extends EventEmitter {
 
       // Read-only attach in a roomy viewport so we never constrain the session.
       this.term = pty.spawn(
-        'tmux',
+        config.tmuxBin,
         ['attach-session', '-r', '-t', config.sessionName],
         {
           name: 'xterm-256color',

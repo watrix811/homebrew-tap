@@ -12,7 +12,7 @@ const config = require('./config');
 function sessionCommand() {
   if (config.useTmux) {
     return {
-      file: 'tmux',
+      file: config.tmuxBin,
       args: [
         'new-session',
         '-A',

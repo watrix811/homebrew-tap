@@ -31,6 +31,24 @@ function resolveToken() {
   return token;
 }
 
+// Resolve a command to an absolute path. node-pty's posix_spawn does not do
+// the PATH lookup that the shell / execFile do, so launching by bare name
+// (e.g. "tmux") can fail with "posix_spawnp failed" even when the binary is
+// on PATH. Resolving here makes spawning robust regardless of how PATH is set.
+function resolveBin(name) {
+  if (!name || name.includes('/') || name.includes(' ')) return name;
+  try {
+    const out = execSync(`command -v ${name} 2>/dev/null`, {
+      shell: '/bin/sh',
+    })
+      .toString()
+      .trim();
+    return out || name;
+  } catch (_) {
+    return name;
+  }
+}
+
 // Is tmux available on this machine?
 function hasTmux() {
   try {
@@ -50,8 +68,10 @@ module.exports = {
   port: parseInt(process.env.CLAUDE_REMOTE_PORT || '4317', 10),
   token: resolveToken(),
   tokenFile: TOKEN_FILE,
-  // Command that actually launches Claude Code.
-  claudeCmd: process.env.CLAUDE_REMOTE_CMD || 'claude',
+  // Command that actually launches Claude Code (resolved to an absolute path).
+  claudeCmd: resolveBin(process.env.CLAUDE_REMOTE_CMD || 'claude'),
+  // Absolute path to tmux, for the same node-pty PATH-resolution reason.
+  tmuxBin: resolveBin('tmux'),
   // tmux session name shared between the Mac terminal and remote clients.
   sessionName: process.env.CLAUDE_REMOTE_SESSION || 'claude-remote',
   useTmux,
