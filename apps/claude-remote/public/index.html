@@ -7,6 +7,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#0b0e14" />
   <title>Claude Remote</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icon.svg" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css" />
   <link rel="stylesheet" href="/style.css" />
 </head>
@@ -28,6 +30,7 @@
     <header class="bar">
       <span id="status" class="status disconnected">未接続</span>
       <span class="title">Claude Code</span>
+      <button id="bell" class="ghost" title="入力待ち通知" hidden>🔔 通知</button>
       <button id="disconnect" class="ghost">切断</button>
     </header>
     <div id="terminal"></div>

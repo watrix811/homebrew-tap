@@ -22,6 +22,7 @@ const els = {
   disconnect: document.getElementById('disconnect'),
   terminalHost: document.getElementById('terminal'),
   kbd: document.getElementById('kbd'),
+  bell: document.getElementById('bell'),
 };
 
 let term;
@@ -145,6 +146,7 @@ function startSession(token) {
   else debouncedFit();
   sessionStarted = true;
   connect(token);
+  setupPush(token);
 }
 
 // --- Wire up UI ------------------------------------------------------------
@@ -185,6 +187,80 @@ document.querySelectorAll('.keys button[data-key]').forEach((btn) => {
 els.kbd.addEventListener('click', (e) => {
   e.preventDefault();
   term.focus();
+});
+
+// --- Web Push (notify when Claude is waiting for input) -------------------
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+let pushReady = false;
+async function setupPush(token) {
+  // Web Push needs a service worker + Notification API. On iOS this only works
+  // when the site is installed to the Home Screen (standalone PWA).
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const info = await fetch('/push/vapid-public-key').then((r) => r.json());
+    if (!info.enabled || !info.publicKey) return; // tmux disabled => no idle detection
+    window.__vapid = info.publicKey;
+    window.__pushToken = token;
+    await navigator.serviceWorker.register('/sw.js');
+    pushReady = true;
+    els.bell.hidden = false;
+    refreshBell();
+  } catch (_) {
+    /* push unavailable; ignore */
+  }
+}
+
+async function refreshBell() {
+  if (!pushReady) return;
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  els.bell.textContent = sub ? '🔔 通知ON' : '🔕 通知';
+  els.bell.dataset.on = sub ? '1' : '';
+}
+
+async function togglePush() {
+  if (!pushReady) return;
+  const reg = await navigator.serviceWorker.ready;
+  const existing = await reg.pushManager.getSubscription();
+  if (existing) {
+    await fetch('/push/unsubscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: window.__pushToken, endpoint: existing.endpoint }),
+    }).catch(() => {});
+    await existing.unsubscribe();
+    refreshBell();
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') {
+    alert('通知が許可されませんでした。iOSではホーム画面に追加したアプリから有効化してください。');
+    return;
+  }
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(window.__vapid),
+  });
+  await fetch('/push/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: window.__pushToken, subscription: sub }),
+  });
+  refreshBell();
+}
+
+els.bell.addEventListener('click', (e) => {
+  e.preventDefault();
+  togglePush();
 });
 
 // Auto-connect if we already have a token saved.

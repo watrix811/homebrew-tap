@@ -8,13 +8,15 @@
   },
   "scripts": {
     "start": "node server/index.js",
-    "dev": "node server/index.js"
+    "dev": "node server/index.js",
+    "doctor": "node bin/doctor.js"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "node-pty": "^1.0.0",
+    "web-push": "^3.6.7",
     "ws": "^8.18.0"
   },
   "license": "MIT"

@@ -9,6 +9,8 @@ const { WebSocketServer } = require('ws');
 
 const config = require('./config');
 const { createTerminal } = require('./pty');
+const push = require('./push');
+const { SessionMonitor } = require('./monitor');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -57,14 +59,72 @@ function serveStatic(req, res) {
   });
 }
 
-const server = http.createServer((req, res) => {
-  // Lightweight health/info endpoint (no secrets leaked).
+// Read and JSON-parse a request body (small bodies only).
+function readJson(req) {
+  return new Promise((resolve) => {
+    let data = '';
+    req.on('data', (c) => {
+      data += c;
+      if (data.length > 1e6) req.destroy(); // basic guard
+    });
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(data || '{}'));
+      } catch (_) {
+        resolve(null);
+      }
+    });
+    req.on('error', () => resolve(null));
+  });
+}
+
+function sendJson(res, code, obj) {
+  res.writeHead(code, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(obj));
+}
+
+const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+
+  // Lightweight health/info endpoint (no secrets leaked).
   if (url.pathname === '/healthz') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, tmux: config.useTmux, session: config.sessionName }));
+    sendJson(res, 200, {
+      ok: true,
+      tmux: config.useTmux,
+      session: config.sessionName,
+      push: { enabled: config.useTmux, subscribers: push.count() },
+    });
     return;
   }
+
+  // --- Web Push endpoints (token-protected) ---
+  if (url.pathname === '/push/vapid-public-key') {
+    sendJson(res, 200, { publicKey: push.publicKey, enabled: config.useTmux });
+    return;
+  }
+
+  if (url.pathname === '/push/subscribe' && req.method === 'POST') {
+    const body = await readJson(req);
+    if (!body || !tokenValid(body.token)) {
+      sendJson(res, 401, { error: 'unauthorized' });
+      return;
+    }
+    const ok = push.add(body.subscription);
+    sendJson(res, ok ? 200 : 400, { ok });
+    return;
+  }
+
+  if (url.pathname === '/push/unsubscribe' && req.method === 'POST') {
+    const body = await readJson(req);
+    if (!body || !tokenValid(body.token)) {
+      sendJson(res, 401, { error: 'unauthorized' });
+      return;
+    }
+    push.remove(body.endpoint);
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
   serveStatic(req, res);
 });
 
@@ -141,6 +201,25 @@ wss.on('connection', (ws) => {
       /* already gone */
     }
   });
+});
+
+// --- Idle detection -> push notifications ---------------------------------
+
+const idleMs = parseInt(process.env.CLAUDE_REMOTE_IDLE_MS || '6000', 10);
+const monitor = new SessionMonitor({ idleMs });
+monitor.on('idle', () => {
+  if (push.count() === 0) return;
+  push.notifyAll({
+    title: 'Claude Code',
+    body: '入力待ちです。タップして開く',
+    tag: 'claude-remote-idle',
+  }).catch(() => {});
+});
+monitor.start();
+
+process.on('SIGINT', () => {
+  monitor.stop();
+  process.exit(0);
 });
 
 // --- Startup banner --------------------------------------------------------
