@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0b0e14" />
+  <title>Claude Remote</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <!-- Token gate -->
+  <div id="login" class="login">
+    <div class="login-card">
+      <h1>Claude&nbsp;Remote</h1>
+      <p>Mac のターミナルで動く Claude Code に接続します。</p>
+      <input id="token" type="password" inputmode="text" autocomplete="off"
+             placeholder="アクセストークン" />
+      <button id="connect">接続</button>
+      <p id="login-error" class="error" hidden></p>
+    </div>
+  </div>
+
+  <!-- Terminal -->
+  <div id="app" hidden>
+    <header class="bar">
+      <span id="status" class="status disconnected">未接続</span>
+      <span class="title">Claude Code</span>
+      <button id="disconnect" class="ghost">切断</button>
+    </header>
+    <div id="terminal"></div>
+    <!-- Mobile helper keys: chars hard to type / send on a soft keyboard -->
+    <div class="keys">
+      <button data-key="esc">Esc</button>
+      <button data-key="tab">Tab</button>
+      <button data-key="ctrl-c">Ctrl-C</button>
+      <button data-key="up">&uarr;</button>
+      <button data-key="down">&darr;</button>
+      <button data-key="left">&larr;</button>
+      <button data-key="right">&rarr;</button>
+      <button data-key="enter">&crarr;</button>
+      <button id="kbd">&#9000;</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
