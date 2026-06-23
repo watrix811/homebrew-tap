@@ -80,8 +80,11 @@ function connect(token) {
   const url = `${proto}://${location.host}/ws?token=${encodeURIComponent(token)}`;
   setStatus('connecting', '接続中…');
   ws = new WebSocket(url);
+  let opened = false;
 
   ws.onopen = () => {
+    opened = true;
+    failedConnects = 0;
     setStatus('connected', '接続済み');
     send({ type: 'resize', cols: term.cols, rows: term.rows });
     term.focus();
@@ -101,12 +104,18 @@ function connect(token) {
     }
   };
 
-  ws.onclose = (ev) => {
+  ws.onclose = () => {
     if (intentionalClose) return;
-    if (ev.code === 1006 || ev.code === 4401 || ev.code === 401) {
-      // Likely auth failure on first connect: bounce back to login.
-      if (els.app.hidden === false && !sessionStarted) {
-        showLoginError('トークンが正しくないか、接続できませんでした。');
+    // If we never reached `open`, the handshake itself failed — almost always
+    // a bad/expired token (server rejects the upgrade with 401). Don't loop
+    // forever: after a couple of attempts, drop the saved token and show the
+    // login screen with a clear reason instead of an endless reconnect.
+    if (!opened) {
+      failedConnects += 1;
+      if (failedConnects >= 2) {
+        clearTimeout(reconnectTimer);
+        localStorage.removeItem('cr_token');
+        showLoginError('接続できませんでした。トークンが正しいか確認してください（前後の空白に注意）。');
         showLogin();
         return;
       }
@@ -119,6 +128,8 @@ function connect(token) {
     // onclose will handle UI transitions.
   };
 }
+
+let failedConnects = 0;
 
 let sessionStarted = false;
 function scheduleReconnect(token) {
