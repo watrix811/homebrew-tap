@@ -14,6 +14,14 @@ const { SessionMonitor } = require('./monitor');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
+// Surface unexpected errors instead of dying silently mid-handshake.
+process.on('uncaughtException', (err) => {
+  console.error('[fatal] uncaughtException:', err);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('[fatal] unhandledRejection:', err);
+});
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -133,25 +141,54 @@ const server = http.createServer(async (req, res) => {
 const wss = new WebSocketServer({ noServer: true });
 
 server.on('upgrade', (req, socket, head) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  if (url.pathname !== '/ws') {
-    socket.destroy();
-    return;
+  const ip = req.socket.remoteAddress;
+  try {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    if (url.pathname !== '/ws') {
+      console.log(`[ws] upgrade rejected (path=${url.pathname}) from ${ip}`);
+      socket.destroy();
+      return;
+    }
+    // Token can arrive via query (?token=) or the Sec-WebSocket-Protocol header.
+    const token = url.searchParams.get('token') || req.headers['sec-websocket-protocol'];
+    const okAuth = tokenValid(token);
+    console.log(
+      `[ws] upgrade from ${ip} token=${token ? 'present' : 'MISSING'} auth=${okAuth ? 'OK' : 'FAIL'}`
+    );
+    if (!okAuth) {
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit('connection', ws, req);
+    });
+  } catch (err) {
+    console.error(`[ws] upgrade error from ${ip}:`, err.message);
+    try {
+      socket.destroy();
+    } catch (_) {
+      /* ignore */
+    }
   }
-  // Token can arrive via query (?token=) or the Sec-WebSocket-Protocol header.
-  const token = url.searchParams.get('token') || req.headers['sec-websocket-protocol'];
-  if (!tokenValid(token)) {
-    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-    socket.destroy();
-    return;
-  }
-  wss.handleUpgrade(req, socket, head, (ws) => {
-    wss.emit('connection', ws, req);
-  });
 });
 
-wss.on('connection', (ws) => {
-  const term = createTerminal({ cols: 80, rows: 24 });
+wss.on('connection', (ws, req) => {
+  const ip = req && req.socket ? req.socket.remoteAddress : '?';
+  let term;
+  try {
+    term = createTerminal({ cols: 80, rows: 24 });
+    console.log(`[ws] connected ${ip} — terminal spawned (pid=${term.pid})`);
+  } catch (err) {
+    console.error(`[ws] failed to spawn terminal for ${ip}:`, err.message);
+    try {
+      ws.send(JSON.stringify({ type: 'output', data: `\r\n[server error: ${err.message}]\r\n` }));
+    } catch (_) {
+      /* ignore */
+    }
+    ws.close();
+    return;
+  }
 
   const onData = (data) => {
     if (ws.readyState === ws.OPEN) {
@@ -161,6 +198,7 @@ wss.on('connection', (ws) => {
   term.onData(onData);
 
   term.onExit(({ exitCode }) => {
+    console.log(`[ws] terminal for ${ip} exited (code=${exitCode})`);
     if (ws.readyState === ws.OPEN) {
       ws.send(JSON.stringify({ type: 'exit', code: exitCode }));
       ws.close();
@@ -193,6 +231,7 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
+    console.log(`[ws] client ${ip} disconnected`);
     // Detach this viewport. With tmux the underlying Claude Code session keeps
     // running; killing the attach client is enough.
     try {
