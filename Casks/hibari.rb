@@ -7,7 +7,7 @@ cask "hibari" do
   desc "Single-tap left/right Command keys to toggle Japanese/English IME (US keyboards)"
   homepage "https://github.com/watrix811/hibari"
 
-  depends_on macos: ">= :sonoma"
+  depends_on macos: :sonoma
 
   app "Hibari.app"
 
