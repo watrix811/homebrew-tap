@@ -1,6 +1,6 @@
 cask "tsubame" do
-  version "0.15.0"
-  sha256 "dc1bed01d50991d569bdf3eff9365bfc3ba30a6de3e916ecf4d9291a80aa0f95"
+  version "0.15.6"
+  sha256 "a5b7088fc430528e5d874c5b73cebc74ac120249860814d4882d3decbf197c9f"
 
   url "https://github.com/watrix811/homebrew-tap/releases/download/tsubame-v#{version}/Tsubame-v#{version}-macOS.zip",
       verified: "github.com/watrix811/homebrew-tap/"
