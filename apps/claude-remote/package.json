@@ -1,0 +1,23 @@
+{
+  "name": "claude-remote",
+  "version": "0.1.0",
+  "description": "Control Claude Code running in your Mac terminal from a phone browser (and, later, a native iOS app).",
+  "type": "commonjs",
+  "bin": {
+    "claude-remote": "bin/claude-remote.js"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "doctor": "node bin/doctor.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "node-pty": "^1.0.0",
+    "web-push": "^3.6.7",
+    "ws": "^8.18.0"
+  },
+  "license": "MIT"
+}
