@@ -1,6 +1,6 @@
 cask "octsnap" do
-  version "1.2.0"
-  sha256 "c39ff09909d75195716dade59b7c8f4185e91845e9f176bdb1605120023e0d11"
+  version "1.2.1"
+  sha256 "d45319eaab9703eaabbec93ecadffe3d82e88a16dd08d245ff572c716a4c74e3"
 
   url "https://github.com/watrix811/homebrew-tap/releases/download/octsnap-v#{version}/OctSnap-v#{version}-macOS.zip"
   name "OctSnap"
