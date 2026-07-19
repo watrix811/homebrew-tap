@@ -1,6 +1,6 @@
 cask "octsnap" do
-  version "1.3.0"
-  sha256 "feff676862db50022d0d4f4112b866dd4ddb0ba86c49ba67eb56626305c7b3dc"
+  version "1.3.1"
+  sha256 "cae73773929f30c55973f74b3134edbb0867d1d752d61fb9007e905dae020402"
 
   url "https://github.com/watrix811/homebrew-tap/releases/download/octsnap-v#{version}/OctSnap-v#{version}-macOS.zip"
   name "OctSnap"
@@ -12,7 +12,7 @@ cask "octsnap" do
   app "OctSnap.app"
 
   zap trash: [
-    "~/Library/Preferences/com.watrix.octsnap.plist",
-    "~/Library/Saved Application State/com.watrix.octsnap.savedState",
+    "~/Library/Preferences/jp.watrix.octsnap.plist",
+    "~/Library/Saved Application State/jp.watrix.octsnap.savedState",
   ]
 end
