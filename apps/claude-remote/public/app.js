@@ -149,12 +149,27 @@ function showLogin() {
 }
 
 function startSession(token) {
+  // Fail loudly (on the login screen) if the terminal library did not load,
+  // instead of silently hanging at "接続中…".
+  if (typeof Terminal === 'undefined' || typeof FitAddon === 'undefined') {
+    localStorage.removeItem('cr_token');
+    showLoginError('端末ライブラリの読み込みに失敗しました。ページを再読み込みしてください。');
+    showLogin();
+    return;
+  }
   localStorage.setItem('cr_token', token);
   els.login.hidden = true;
   els.app.hidden = false;
   els.loginError.hidden = true;
-  if (!term) buildTerminal();
-  else debouncedFit();
+  try {
+    if (!term) buildTerminal();
+    else debouncedFit();
+  } catch (err) {
+    localStorage.removeItem('cr_token');
+    showLoginError('端末の初期化に失敗しました: ' + (err && err.message ? err.message : err));
+    showLogin();
+    return;
+  }
   sessionStarted = true;
   connect(token);
   setupPush(token);
